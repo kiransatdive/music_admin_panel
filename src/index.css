@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 dark:bg-dark-bg dark:text-slate-100 transition-colors duration-300 font-sans antialiased;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md shadow-rose-500/10 hover:shadow-rose-500/20 border border-rose-600/10;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md shadow-violet-500/10 hover:shadow-violet-500/20 border border-violet-600/10;
+  }
+ 
+  .btn-outline {
+    @apply border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] dark:border-rose-500/80 dark:text-rose-400 dark:hover:bg-rose-600 dark:hover:text-white;
+  }
+  
+  .card {
+    @apply bg-white dark:bg-dark-card rounded-2xl p-6 shadow-soft dark:shadow-soft-dark border border-slate-100 dark:border-dark-border/40 transition-all duration-300;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-white dark:bg-dark-bg border border-slate-200 dark:border-dark-border/60 rounded-xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-rose-500 dark:focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 dark:focus:ring-rose-500/5 transition-all duration-200 text-sm shadow-sm;
+  }
+
+  select.input-field {
+    @apply appearance-none pr-10;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+  }
+
+  .dark select.input-field {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  }
+
+  /* Glass card style */
+  .glass-card {
+    @apply bg-white/70 dark:bg-dark-card/75 backdrop-blur-md border border-slate-100/50 dark:border-dark-border/30 rounded-2xl shadow-soft dark:shadow-soft-dark;
+  }
+}
+
+/* Animations */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .8; transform: scale(0.98); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Global Table & Dark Mode Styles */
+.dark table {
+  @apply text-slate-300;
+}
+
+.dark th {
+  background-color: rgba(8, 12, 20, 0.6) !important;
+  border-color: rgba(30, 41, 59, 0.5) !important;
+  color: #94a3b8 !important;
+}
+
+.dark td {
+  border-color: rgba(30, 41, 59, 0.3) !important;
+  color: #cbd5e1 !important;
+}
+
+.dark tr {
+  border-color: rgba(30, 41, 59, 0.3) !important;
+}
+
+.dark tr:hover {
+  background-color: rgba(30, 41, 59, 0.25) !important;
+}
+
+/* Global Dark Mode Fallbacks for standard Tailwind colors */
+.dark .bg-white:not(button):not(input):not(select):not(.logo-bg):not(span):not(a) {
+  background-color: #0f172a !important; /* dark-card */
+}
+
+.dark .text-gray-900, .dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-gray-800, .dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-gray-700, .dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-600, .dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-500, .dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+.dark .text-gray-400, .dark .text-slate-400 {
+  color: #475569 !important;
+}
+
+.dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300, .dark .border-slate-100, .dark .border-slate-200 {
+  border-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+.dark .bg-gray-50, .dark .bg-gray-100, .dark .bg-gray-150, .dark .bg-slate-50 {
+  background-color: #080c14 !important; /* dark-bg */
+}
+
+.dark .divide-gray-100 > *, .dark .divide-gray-150 > *, .dark .divide-gray-200 > *, .dark .divide-slate-100 > * {
+  border-color: rgba(30, 41, 59, 0.4) !important;
+}
+
+.dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover, .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-100:hover {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+}
+
+.dark .input-field {
+  background-color: #080c14 !important;
+  border-color: rgba(30, 41, 59, 0.8) !important;
+  color: #f8fafc !important;
+}
+
+.dark .input-field:focus {
+  border-color: #00aeef !important;
+}
+
