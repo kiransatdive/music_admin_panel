@@ -207,7 +207,7 @@ export default function Artists() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="flex flex-col h-[calc(100vh-6rem)] space-y-6 pb-4">
       {/* Toast Alert System */}
       <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
         {toasts.map((toast) => (
@@ -262,11 +262,11 @@ export default function Artists() {
       </div>
 
       {/* Artists Table Listing */}
-      <div className="card p-0 overflow-hidden border border-gray-200 shadow-md">
-        <div className="overflow-x-auto">
+      <div className="card p-0 overflow-hidden border border-gray-200 shadow-md flex-1 flex flex-col min-h-0">
+        <div className="overflow-auto flex-1">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/50">
+            <thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm shadow-sm">
+              <tr className="border-b border-gray-200">
                 <th className="py-4 px-5 text-xs font-bold uppercase tracking-wider text-gray-500 w-16">Profile</th>
                 <th className="py-4 px-5 text-xs font-bold uppercase tracking-wider text-gray-500">Artist Name</th>
                 <th className="py-4 px-5 text-xs font-bold uppercase tracking-wider text-gray-500">Email Address</th>
@@ -380,8 +380,8 @@ export default function Artists() {
         </div>
 
         {/* Pagination Section */}
-        {!loading && !error && meta.total > itemsPerPage && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-gray-50 border-t border-gray-200">
+        {!loading && !error && meta.total > 0 && (
+          <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-gray-50 border-t border-gray-200">
             <span className="text-sm text-gray-600 font-medium">
               Showing <span className="font-bold text-gray-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-gray-900">{Math.min(currentPage * itemsPerPage, meta.total)}</span> of <span className="font-bold text-gray-900">{meta.total}</span> artists
             </span>

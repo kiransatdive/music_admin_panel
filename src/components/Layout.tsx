@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Layout() {
   const { logout } = useAuth();
@@ -19,7 +20,22 @@ export default function Layout() {
 
   const [isOpen, setIsOpen] = useState(false); // Mobile sidebar drawer open/close
 
+  // Unread notifications count
+  const [unreadCount, setUnreadCount] = useState(0);
 
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await axios.get('/api/admin/notifications');
+        if (response.data && response.data.success) {
+          setUnreadCount(response.data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread notifications count', error);
+      }
+    };
+    fetchUnreadCount();
+  }, [location.pathname]); // Refresh count on navigation
 
   // Dark Mode state
   const [isDark, setIsDark] = useState(() => {
@@ -105,8 +121,24 @@ export default function Layout() {
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'
                 } ${collapsedMode ? 'justify-center px-0' : ''}`}
             >
-              <Icon size={20} className="shrink-0 transition-transform group-hover:scale-105" />
-              {!collapsedMode && <span>{item.label}</span>}
+              <div className="relative">
+                <Icon size={20} className="shrink-0 transition-transform group-hover:scale-105" />
+                {item.label === 'Notifications' && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-dark-card">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </div>
+              {!collapsedMode && (
+                <span className="flex-1 flex justify-between items-center">
+                  {item.label}
+                  {item.label === 'Notifications' && unreadCount > 0 && (
+                    <span className="flex h-5 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 text-xs font-bold text-red-600 dark:text-red-400">
+                      {unreadCount}
+                    </span>
+                  )}
+                </span>
+              )}
             </Link>
           );
         })}

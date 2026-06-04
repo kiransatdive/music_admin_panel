@@ -3,9 +3,15 @@ import axios from 'axios';
 import {
   Check, X, Clock, Play, Pause, Search, Trash2, Eye,
   ChevronLeft, ChevronRight, ChevronDown, Music, Globe, Layers, Ban,
-  ShieldAlert, AlertTriangle, Info, XCircle, CheckCircle,
+  AlertTriangle, Info, XCircle, CheckCircle,
   RefreshCw, Edit3, Download, PlayCircle, Radio
 } from 'lucide-react';
+
+interface Platform {
+  id: number;
+  name: string;
+  logo: string;
+}
 
 interface Release {
   id: number;
@@ -23,6 +29,7 @@ interface Release {
   rejection_reason?: string | null;
   admin_notes?: string | null;
   distribution_platforms?: string[] | null;
+  platforms?: Platform[] | null;
   youtube_content_id?: boolean;
   lyrics?: string;
   credits?: string;
@@ -176,17 +183,13 @@ export default function Releases() {
   const [adminNotes, setAdminNotes] = useState('');
   const [showZoomArtwork, setShowZoomArtwork] = useState<string | null>(null);
   const [editRelease, setEditRelease] = useState<Release | null>(null);
+  const [editTrack, setEditTrack] = useState<any>(null);
 
-  // Whitelist request form states
-  const [whitelistCategory, setWhitelistCategory] = useState<'SOCIAL_MEDIA' | 'STREAMING_PLATFORM' | 'WEBSITE_DOMAIN'>('SOCIAL_MEDIA');
-  const [whitelistPlatform, setWhitelistPlatform] = useState('');
-  const [whitelistDomain, setWhitelistDomain] = useState('');
-  const [submittingWhitelist, setSubmittingWhitelist] = useState(false);
 
   // Audio Player State
   const [currentPlayingTrack, setCurrentPlayingTrack] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);   
 
   // Stats Card Metrics
   const [stats, setStats] = useState({
@@ -235,43 +238,7 @@ export default function Releases() {
     }
   };
 
-  const handleSubmitWhitelist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!whitelistPlatform.trim() || !whitelistDomain.trim()) {
-      addToast('Platform name and domain are required.', 'error');
-      return;
-    }
 
-    setSubmittingWhitelist(true);
-    try {
-      const token = localStorage.getItem('token');
-      const reqConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-
-      const payload = {
-        category: whitelistCategory,
-        platformName: whitelistPlatform.trim(),
-        domain: whitelistDomain.trim()
-      };
-
-      const res = await axios.post('/api/artist/whitelist', payload, reqConfig);
-
-      if (res.data && res.data.success) {
-        addToast(res.data.message || 'Whitelist domain submitted for approval', 'success');
-      } else {
-        addToast('Whitelist domain submitted for approval', 'success');
-      }
-
-      // Clear form
-      setWhitelistPlatform('');
-      setWhitelistDomain('');
-    } catch (err: any) {
-      console.error('Failed to submit whitelist request:', err);
-      const errMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to submit whitelist request';
-      addToast(errMsg, 'error');
-    } finally {
-      setSubmittingWhitelist(false);
-    }
-  };
 
   const fetchReleases = async () => {
     setLoading(true);
@@ -329,6 +296,25 @@ export default function Releases() {
             platforms = ['Spotify', 'Apple Music', 'YouTube Music', 'Amazon Music'];
           }
 
+          let parsedPlatforms = [];
+          if (item.platforms && Array.isArray(item.platforms)) {
+            const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            parsedPlatforms = item.platforms.map((p: any) => {
+              let logoUrl = p.logo;
+              if (logoUrl) {
+                const cleanPath = logoUrl.replace(/\\/g, '/');
+                if (!cleanPath.startsWith('http://') && !cleanPath.startsWith('https://')) {
+                  logoUrl = cleanPath.startsWith('uploads/') ? `${backendUrl}/${cleanPath}` : `${backendUrl}/uploads/${cleanPath}`;
+                }
+              }
+              return {
+                id: p.id,
+                name: p.name,
+                logo: logoUrl
+              };
+            });
+          }
+
           return {
             id: item.id,
             title: item.title,
@@ -345,6 +331,7 @@ export default function Releases() {
             rejection_reason: item.rejectionReason || item.rejection_reason || null,
             admin_notes: item.adminNotes || item.admin_notes || null,
             distribution_platforms: platforms,
+            platforms: parsedPlatforms.length > 0 ? parsedPlatforms : null,
             youtube_content_id: item.youtubeContentId || item.youtube_content_id || false,
             lyrics: item.lyrics || '',
             credits: item.credits || '',
@@ -557,6 +544,33 @@ export default function Releases() {
     setEditRelease(null);
   };
 
+  const handleUpdateTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTrack) return;
+    try {
+      const token = localStorage.getItem('token');
+      const reqConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      
+      const formData = new FormData();
+      if (editTrack.title || editTrack.trackTitle) formData.append('trackTitle', editTrack.title || editTrack.trackTitle);
+      if (editTrack.isrc !== undefined) formData.append('isrc', editTrack.isrc);
+      if (editTrack.lyrics !== undefined) formData.append('lyrics', editTrack.lyrics);
+      if (editTrack.featuredArtists !== undefined) formData.append('featuredArtists', editTrack.featuredArtists);
+      if (editTrack.trackFile) formData.append('track', editTrack.trackFile);
+
+      const response = await axios.put(`/api/admin/tracks/${editTrack.id}`, formData, reqConfig);
+      
+      const updatedTrack = response.data.track;
+      addToast('Track updated successfully', 'success');
+      setPreviewTracks(prev => prev.map(t => t.id === editTrack.id ? { ...t, ...updatedTrack, title: updatedTrack.trackTitle } : t));
+      setEditTrack(null);
+    } catch (error: any) {
+      console.error(error);
+      const errMsg = error.response?.data?.message || 'Failed to update track';
+      addToast(errMsg, 'error');
+    }
+  };
+
   // Selection handlers
   const handleSelectRow = (id: number) => {
     setSelectedIds((prev) =>
@@ -603,26 +617,6 @@ export default function Releases() {
 
 
 
-  const getPlatformClass = (platform: string) => {
-    switch (platform.toLowerCase()) {
-      case 'spotify':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'apple music':
-      case 'apple':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'youtube music':
-      case 'youtube':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
-      case 'amazon music':
-      case 'amazon':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'jiosaavn':
-      case 'saavn':
-        return 'bg-teal-50 text-teal-700 border-teal-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
 
   const getAudioUrl = (filePath?: string) => {
     if (!filePath) return undefined;
@@ -1123,7 +1117,22 @@ export default function Releases() {
                               )}
                             </button>
                             <div>
-                              <div className="font-semibold text-sm text-gray-800">{track.title || track.name || 'Unnamed Track'}</div>
+                              <div className="font-semibold text-sm text-gray-800 flex items-center gap-2">
+                                {track.title || track.name || track.trackTitle || 'Unnamed Track'}
+                                <button
+                                  onClick={() => setEditTrack({
+                                    id: track.id,
+                                    title: track.title || track.name || track.trackTitle || '',
+                                    isrc: track.isrc || '',
+                                    lyrics: track.lyrics || '',
+                                    featuredArtists: track.featuredArtists || ''
+                                  })}
+                                  className="text-gray-400 hover:text-rose-600 transition-colors"
+                                  title="Edit Track Details"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                              </div>
                               <span className="text-gray-400 text-xs font-mono">
                                 WAV | {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
                               </span>
@@ -1169,94 +1178,28 @@ export default function Releases() {
                   </div>
                 )}
 
+
+
+
+
                 {/* Distribution Platforms list */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Requested Store Outlets</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(previewRelease.distribution_platforms || []).map((p, idx) => (
-                      <span key={idx} className={`text-xs px-2.5 py-1 rounded-lg border capitalize font-semibold tracking-wide flex items-center gap-1.5 ${getPlatformClass(p)}`}>
-                        <Globe size={12} /> {p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                {/* YouTube Content ID Rights */}
-                <div className="bg-rose-50/50 dark:bg-rose-500/10 border border-rose-100/50 dark:border-rose-500/20 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <ShieldAlert className="text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" size={20} />
-                    <div>
-                      <h5 className="font-bold text-sm text-gray-900 dark:text-white">YouTube Content ID Rights</h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                        {previewRelease.youtube_content_id
-                          ? 'This artist has requested YouTube Monetization via Content ID. The audio is verified as 100% original content without unlicensed samples.'
-                          : 'No YouTube Content ID claiming requested for this release.'}
-                      </p>
+                {previewRelease.platforms && previewRelease.platforms.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Requested Store Outlets</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {previewRelease.platforms.map((platform) => (
+                        <div key={platform.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+                          {platform.logo ? (
+                            <img src={platform.logo} alt={platform.name} className="w-5 h-5 object-contain" />
+                          ) : (
+                            <Globe size={16} className="text-gray-400" />
+                          )}
+                          <span className="text-xs font-semibold text-gray-700">{platform.name}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-
-                {/* Submit Artist Whitelist Request Form */}
-                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-dark-border/40 rounded-xl p-4 space-y-3 shadow-sm">
-                  <div className="flex items-center gap-2 border-b border-slate-100 dark:border-dark-border/20 pb-2">
-                    <Globe className="text-rose-500" size={18} />
-                    <h5 className="font-bold text-sm text-gray-900 dark:text-white">Submit Artist Whitelist Request</h5>
-                  </div>
-
-                  <form onSubmit={handleSubmitWhitelist} className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Category *
-                        </label>
-                        <select
-                          value={whitelistCategory}
-                          onChange={(e) => setWhitelistCategory(e.target.value as any)}
-                          className="input-field py-1.5 text-xs font-semibold"
-                        >
-                          <option value="SOCIAL_MEDIA">Social Media</option>
-                          <option value="STREAMING_PLATFORM">Streaming Platform</option>
-                          <option value="WEBSITE_DOMAIN">Website Domain</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Platform Name *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Instagram"
-                          value={whitelistPlatform}
-                          onChange={(e) => setWhitelistPlatform(e.target.value)}
-                          className="input-field py-1.5 text-xs"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Domain / Link *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. google.com"
-                          value={whitelistDomain}
-                          onChange={(e) => setWhitelistDomain(e.target.value)}
-                          className="input-field py-1.5 text-xs font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={submittingWhitelist}
-                      className="btn-primary w-full py-2 text-xs font-bold transition-all shadow-sm hover:shadow active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      {submittingWhitelist ? 'Submitting Request...' : 'Submit Whitelist Request'}
-                    </button>
-                  </form>
-                </div>
+                )}
 
                 {/* Lyrics & Credits */}
                 {(previewRelease.lyrics || previewRelease.credits) && (
@@ -1319,12 +1262,7 @@ export default function Releases() {
                 )}
                 {previewRelease.status === 'approved' && (
                   <>
-                    <button
-                      onClick={() => { handleUpdateStatus(previewRelease.id, 'distributed'); setPreviewRelease(null); }}
-                      className="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition-all"
-                    >
-                      Distribute Release
-                    </button>
+
                     <button
                       onClick={() => { handleUpdateStatus(previewRelease.id, 'live'); setPreviewRelease(null); }}
                       className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition-all"
@@ -1560,6 +1498,87 @@ export default function Releases() {
                   className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-5 rounded-xl text-sm transition-colors shadow-lg"
                 >
                   Save Corrections
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Track Modal */}
+      {editTrack && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Track</h3>
+              <button onClick={() => setEditTrack(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateTrack} className="p-6 space-y-4 overflow-y-auto">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Track Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editTrack.title || editTrack.trackTitle || ''}
+                  onChange={(e) => setEditTrack({ ...editTrack, title: e.target.value, trackTitle: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none dark:text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Replace Audio File (WAV only)</label>
+                <input
+                  type="file"
+                  accept="audio/wav"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setEditTrack({ ...editTrack, trackFile: file });
+                  }}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Leave empty to keep current audio.</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">ISRC Code</label>
+                <input
+                  type="text"
+                  value={editTrack.isrc || ''}
+                  onChange={(e) => setEditTrack({ ...editTrack, isrc: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none dark:text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Featured Artists</label>
+                <input
+                  type="text"
+                  value={editTrack.featuredArtists || ''}
+                  onChange={(e) => setEditTrack({ ...editTrack, featuredArtists: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none dark:text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Lyrics</label>
+                <textarea
+                  rows={4}
+                  value={editTrack.lyrics || ''}
+                  onChange={(e) => setEditTrack({ ...editTrack, lyrics: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none dark:text-white"
+                ></textarea>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setEditTrack(null)}
+                  className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

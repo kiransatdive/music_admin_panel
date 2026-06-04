@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Youtube, AlertCircle, CheckCircle2, Calendar, Sparkles, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Plus, Trash2, Youtube, AlertCircle, CheckCircle2, Calendar, Sparkles, CheckCircle, XCircle, Info, X } from 'lucide-react';
 
 interface Toast {
   id: number;
@@ -170,43 +170,50 @@ export default function YouTubeCriteria() {
         </div>
       </div>
 
-      {/* Add New Criterion Form */}
+      {/* Add New Criterion Form Modal */}
       {showAddForm && (
-        <div className="card mb-6 border border-rose-500/20 shadow-md">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="text-rose-500" size={18} />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add New Criterion</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 max-w-lg w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-rose-500" size={18} />
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add New Criterion</h2>
+              </div>
+              <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                  Criterion Text Description *
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={formData.text}
+                  onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+                  className="input-field"
+                  placeholder="e.g. Low-value repetitive content may not qualify for monetization."
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Ensure this statement is clear, direct, and actionable for creators.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Add Criterion
+                </button>
+              </div>
+            </form>
           </div>
-          <form onSubmit={handleAdd} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                Criterion Text Description *
-              </label>
-              <textarea
-                required
-                rows={3}
-                value={formData.text}
-                onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                className="input-field"
-                placeholder="e.g. Low-value repetitive content may not qualify for monetization."
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Ensure this statement is clear, direct, and actionable for creators.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button type="submit" className="btn-primary">
-                Add Criterion
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="btn-outline"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
         </div>
       )}
 
@@ -268,9 +275,7 @@ export default function YouTubeCriteria() {
                         </span>
                       )}
 
-                      <span className="text-slate-400 dark:text-slate-500">
-                        Version ID: #{criterion.id}
-                      </span>
+
                     </div>
                   </div>
 

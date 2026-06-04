@@ -1,37 +1,50 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Send, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bell, Check, Trash2, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Notification {
   id: number;
   title: string;
   message: string;
-  target: 'all' | 'artists' | 'admins';
-  created_at: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    message: '',
-    target: 'all' as 'all' | 'artists' | 'admins',
-  });
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [currentPage]);
 
   const fetchNotifications = async () => {
     try {
-      const response = await axios.get('/api/admin/notifications');
-      setNotifications(response.data);
+      setLoading(true);
+      const response = await axios.get('/api/admin/notifications', {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage
+        }
+      });
+      
+      if (response.data && response.data.success) {
+        setNotifications(response.data.data || []);
+        setUnreadCount(response.data.unreadCount || 0);
+        setTotalItems(response.data.total || 0);
+      } else if (Array.isArray(response.data)) {
+        setNotifications(response.data);
+        setTotalItems(response.data.length);
+        setUnreadCount(response.data.filter((n: any) => !n.isRead).length);
+      }
     } catch (error) {
       console.error('Failed to fetch notifications');
     } finally {
@@ -39,15 +52,21 @@ export default function Notifications() {
     }
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMarkAllAsRead = async () => {
     try {
-      await axios.post('/api/admin/notifications', formData);
-      setFormData({ title: '', message: '', target: 'all' });
-      setShowCreateForm(false);
+      await axios.put('/api/admin/notifications/read-all');
       fetchNotifications();
     } catch (error) {
-      alert('Failed to send notification');
+      console.error('Failed to mark all as read');
+    }
+  };
+
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await axios.put(`/api/admin/notifications/${id}/read`);
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to mark as read');
     }
   };
 
@@ -60,168 +79,144 @@ export default function Notifications() {
     }
   };
 
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Notifications</h1>
+    <div className="flex flex-col h-[calc(100vh-6rem)] pb-4">
+      {/* Header Area */}
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shadow-sm border border-blue-100">
+            <Bell size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+            <p className="text-sm text-gray-500 font-medium mt-0.5">
+              You have {unreadCount} unread messages
+            </p>
+          </div>
+        </div>
+        
         <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="btn-primary inline-flex items-center gap-2"
+          onClick={handleMarkAllAsRead}
+          disabled={unreadCount === 0}
+          className="px-4 py-2 rounded-xl border border-blue-200 text-blue-600 font-semibold text-sm hover:bg-blue-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
         >
-          <Send size={20} />
-          Send Notification
+          <Check size={16} /> Mark All as Read
         </button>
       </div>
 
-      {showCreateForm && (
-        <div className="card mb-6">
-          <h2 className="text-xl font-semibold mb-4">Create Notification</h2>
-          <form onSubmit={handleSend} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Title *</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="input-field"
-                placeholder="Notification title"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Message *</label>
-              <textarea
-                rows={4}
-                required
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="input-field"
-                placeholder="Notification message"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Target Audience</label>
-              <select
-                value={formData.target}
-                onChange={(e) => setFormData({ ...formData, target: e.target.value as any })}
-                className="input-field"
-              >
-                <option value="all">All Users</option>
-                <option value="artists">Artists Only</option>
-                <option value="admins">Admins Only</option>
-              </select>
-            </div>
-            <div className="flex gap-4">
-              <button type="submit" className="btn-primary">
-                Send
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="btn-outline"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-12 text-gray-600">Loading...</div>
-      ) : notifications.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500">No notifications sent</p>
-        </div>
-      ) : (
-        <div className="card p-0 overflow-hidden border border-gray-200 shadow-md">
-          <div className="overflow-x-auto p-6">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="py-4 px-5 text-xs font-semibold uppercase tracking-wider text-gray-500">Title</th>
-                  <th className="py-4 px-5 text-xs font-semibold uppercase tracking-wider text-gray-500">Message</th>
-                  <th className="py-4 px-5 text-xs font-semibold uppercase tracking-wider text-gray-500">Target</th>
-                  <th className="py-4 px-5 text-xs font-semibold uppercase tracking-wider text-gray-500">Sent Date</th>
-                  <th className="py-4 px-5 text-xs font-semibold uppercase tracking-wider text-gray-500 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {notifications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((notification) => (
-                  <tr key={notification.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-4 px-5 font-semibold text-gray-900">{notification.title}</td>
-                    <td className="py-4 px-5 text-gray-700 max-w-md truncate" title={notification.message}>
-                      {notification.message}
-                    </td>
-                    <td className="py-4 px-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        notification.target === 'all'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : notification.target === 'artists'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {notification.target === 'all' ? 'All Users' : notification.target === 'artists' ? 'Artists Only' : 'Admins Only'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-5 text-gray-500 text-sm">
-                      {new Date(notification.created_at).toLocaleString()}
-                    </td>
-                    <td className="py-4 px-5 text-center">
-                      <button
-                        onClick={() => handleDelete(notification.id)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-lg transition-colors inline-flex items-center justify-center"
-                        title="Delete Notification"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Main White Box Container */}
+      <div className="card p-0 flex-1 flex flex-col min-h-0 bg-white shadow-md border border-gray-200 overflow-hidden">
+        {/* Notifications List */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar">
+        {loading ? (
+          <div className="text-center py-12 text-gray-500 font-medium">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <Bell size={32} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500 font-medium">No notifications found.</p>
           </div>
-          {/* Pagination Controls */}
-          {Math.ceil(notifications.length / itemsPerPage) > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
-              <div className="text-sm text-gray-500">
-                Showing <span className="font-bold text-gray-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-gray-900">{Math.min(currentPage * itemsPerPage, notifications.length)}</span> of <span className="font-bold text-gray-900">{notifications.length}</span> entries
+        ) : (
+          notifications.map((notification) => (
+            <div 
+              key={notification.id} 
+              className={`flex items-start gap-4 p-5 rounded-2xl border transition-all duration-200 ${
+                !notification.isRead 
+                  ? 'bg-blue-50/40 border-blue-100 shadow-sm' 
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="pt-1">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  checked={notification.isRead}
+                  onChange={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                  title={notification.isRead ? "Read" : "Mark as read"}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
-                >
-                  <ChevronLeft size={16} /> Prev
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.ceil(notifications.length / itemsPerPage) }).map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentPage(idx + 1)}
-                      className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors border ${
-                        currentPage === idx + 1
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {idx + 1}
-                    </button>
-                  ))}
+              
+              <div className="h-8 w-8 rounded-full border border-blue-200 bg-white flex flex-shrink-0 items-center justify-center text-blue-500 mt-0.5">
+                <Info size={16} />
+              </div>
+              
+              <div className="flex-1 min-w-0 pr-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-base font-bold text-gray-900 truncate">
+                    {notification.title}
+                  </h3>
+                  {!notification.isRead && (
+                    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 shadow-sm" />
+                  )}
                 </div>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / itemsPerPage), p + 1))}
-                  disabled={currentPage === Math.ceil(notifications.length / itemsPerPage)}
-                  className="px-3 py-1.5 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
-                >
-                  Next <ChevronRight size={16} />
-                </button>
+                <p className="text-sm text-gray-600 mb-2 leading-relaxed">
+                  {notification.message}
+                </p>
+                <p className="text-xs text-gray-400 font-medium">
+                  {new Date(notification.createdAt).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}
+                </p>
               </div>
+              
+              <button
+                onClick={() => handleDelete(notification.id)}
+                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors mt-0.5"
+                title="Delete Notification"
+              >
+                <Trash2 size={18} />
+              </button>
             </div>
-          )}
+          ))
+        )}
         </div>
-      )}
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="mt-auto p-4 sm:px-6 flex items-center justify-between border-t border-gray-200 bg-gray-50 shrink-0">
+          <div className="text-sm text-gray-500 font-medium">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+            >
+              <ChevronLeft size={16} /> Prev
+            </button>
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: totalPages }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentPage(idx + 1)}
+                  className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors border ${
+                    currentPage === idx + 1
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+        )}
+      </div>
     </div>
   );
 }

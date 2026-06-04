@@ -10,9 +10,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
-  Info,
   Check,
-  ChevronDown
+  ChevronDown,
+  Edit3
 } from 'lucide-react';
 
 interface WhitelistItem {
@@ -88,7 +88,7 @@ function StatusDropdown({ item, onApprove, onReject, isUpdating = false }: Statu
         type="button"
         disabled={isUpdating}
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center justify-between gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(item.status)} cursor-pointer transition-all duration-200 select-none shadow-sm hover:shadow-md disabled:opacity-75 disabled:cursor-not-allowed`}
+        className={`inline-flex items-center justify-between gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border ${getStatusColor(item.status)} cursor-pointer transition-all duration-200 select-none shadow-sm hover:shadow-md disabled:opacity-75 disabled:cursor-not-allowed`}
       >
         <span>{item.status || 'PENDING'}</span>
         {isUpdating ? (
@@ -157,7 +157,7 @@ function ActiveStatusDropdown({ item, onToggle, isUpdating = false }: ActiveStat
         type="button"
         disabled={isUpdating}
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center justify-between gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getColor(item.isActive)} cursor-pointer transition-all duration-200 select-none shadow-sm hover:shadow-md disabled:opacity-75 disabled:cursor-not-allowed`}
+        className={`inline-flex items-center justify-between gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border ${getColor(item.isActive)} cursor-pointer transition-all duration-200 select-none shadow-sm hover:shadow-md disabled:opacity-75 disabled:cursor-not-allowed`}
       >
         <span>{item.isActive ? 'Active' : 'Inactive'}</span>
         {isUpdating ? (
@@ -216,10 +216,29 @@ export default function Whitelist() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 50;
 
   // Delete modal confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  // Add modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({
+    platformName: '',
+    domain: '',
+    category: 'WEBSITE_DOMAIN'
+  });
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
+    platformName: '',
+    domain: '',
+    category: 'WEBSITE_DOMAIN'
+  });
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchWhitelist();
@@ -364,6 +383,68 @@ export default function Whitelist() {
     }
   };
 
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isAdding) return;
+    setIsAdding(true);
+    try {
+      const response = await axios.post('/api/admin/whitelist', addForm);
+      const responseData = response.data;
+      if (responseData && responseData.success) {
+        showToast(responseData.message || 'Whitelist entry created successfully', 'success');
+        setItems(prev => [responseData.data, ...prev]);
+        setShowAddModal(false);
+        setAddForm({ platformName: '', domain: '', category: 'WEBSITE_DOMAIN' });
+      } else {
+        showToast('Whitelist entry created successfully', 'success');
+        fetchWhitelist();
+        setShowAddModal(false);
+        setAddForm({ platformName: '', domain: '', category: 'WEBSITE_DOMAIN' });
+      }
+    } catch (error: any) {
+      console.error(error);
+      const errMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to create entry';
+      showToast(errMsg, 'error');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const openEditModal = (item: WhitelistItem) => {
+    setEditId(item.id);
+    setEditForm({
+      platformName: item.platformName,
+      domain: item.domain,
+      category: item.category,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isEditing || !editId) return;
+    setIsEditing(true);
+    try {
+      const response = await axios.put(`/api/admin/whitelist/${editId}`, editForm);
+      const responseData = response.data;
+      if (responseData && responseData.success) {
+        showToast(responseData.message || 'Whitelist entry updated successfully', 'success');
+        setItems(prev => prev.map(i => i.id === editId ? { ...i, ...responseData.data } : i));
+        setShowEditModal(false);
+      } else {
+        showToast('Whitelist entry updated successfully', 'success');
+        fetchWhitelist();
+        setShowEditModal(false);
+      }
+    } catch (error: any) {
+      console.error(error);
+      const errMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to update entry';
+      showToast(errMsg, 'error');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
 
   // Get and filter list
   const getFilteredItems = () => {
@@ -411,7 +492,7 @@ export default function Whitelist() {
   }, [search, filterCategory, filterStatus]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full space-y-6">
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl border text-sm animate-bounce ${toast.type === 'success'
@@ -431,13 +512,21 @@ export default function Whitelist() {
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Whitelist Management</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage whitelisted domains and streaming partners allowed for artist profile linking.</p>
+      <div className="shrink-0 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Whitelist Management</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage whitelisted domains and streaming partners allowed for artist profile linking.</p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors shrink-0"
+        >
+          Add New Whitelist
+        </button>
       </div>
 
       {/* List Column */}
-      <div className="card">
+      <div className="card flex-1 flex flex-col min-h-0">
         {/* Filters Bar */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
@@ -491,8 +580,8 @@ export default function Whitelist() {
             <p className="text-sm text-gray-500 mt-1">Try adjusting your filters or search terms.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="overflow-x-auto min-h-[300px]">
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
+            <div className="flex-1 overflow-auto min-h-[300px]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 text-gray-500">
@@ -554,6 +643,13 @@ export default function Whitelist() {
                             </>
                           )}
                           <button
+                            onClick={() => openEditModal(item)}
+                            className="p-1.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit Entry"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
                             onClick={() => handleDeleteTrigger(item.id)}
                             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete Entry"
@@ -610,15 +706,7 @@ export default function Whitelist() {
         )}
       </div>
 
-      {/* Info Card */}
-      <div className="card bg-gray-50/50 text-xs text-gray-500 space-y-2 border border-gray-200">
-        <div className="flex gap-2 font-semibold text-gray-700">
-          <Info className="h-4 w-4 text-rose-600" />
-          <span>How Domain Whitelisting Works</span>
-        </div>
-        <p>1. Whitelisted domains are matched against links provided in artist profiles and release submissions.</p>
-        <p>2. Deactivating a domain rejects any new artist link submissions targeting that domain immediately.</p>
-      </div>
+
 
       {/* Delete Confirmation Modal */}
       {confirmDeleteId !== null && (
@@ -650,6 +738,150 @@ export default function Whitelist() {
                 Confirm Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Entry Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-md w-full animate-in fade-in zoom-in duration-200 flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Add Whitelist Entry</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Platform Name</label>
+                <input
+                  type="text"
+                  required
+                  value={addForm.platformName}
+                  onChange={(e) => setAddForm(prev => ({ ...prev, platformName: e.target.value }))}
+                  placeholder="e.g. Spotify"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Domain</label>
+                <input
+                  type="text"
+                  required
+                  value={addForm.domain}
+                  onChange={(e) => setAddForm(prev => ({ ...prev, domain: e.target.value }))}
+                  placeholder="e.g. open.spotify.com"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Category</label>
+                <select
+                  required
+                  value={addForm.category}
+                  onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="SOCIAL_MEDIA">Social Media</option>
+                  <option value="STREAMING_PLATFORM">Streaming Platform</option>
+                  <option value="WEBSITE_DOMAIN">Website Domain</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 mt-6 pt-2">
+                <button
+                  type="button"
+                  disabled={isAdding}
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAdding}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-75 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isAdding ? (
+                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Adding...</>
+                  ) : (
+                    'Create Entry'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Entry Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-md w-full animate-in fade-in zoom-in duration-200 flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Edit Whitelist Entry</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Platform Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.platformName}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, platformName: e.target.value }))}
+                  placeholder="e.g. Spotify"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Domain</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.domain}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, domain: e.target.value }))}
+                  placeholder="e.g. open.spotify.com"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Category</label>
+                <select
+                  required
+                  value={editForm.category}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="SOCIAL_MEDIA">Social Media</option>
+                  <option value="STREAMING_PLATFORM">Streaming Platform</option>
+                  <option value="WEBSITE_DOMAIN">Website Domain</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 mt-6 pt-2">
+                <button
+                  type="button"
+                  disabled={isEditing}
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditing}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-75 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isEditing ? (
+                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Saving...</>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
