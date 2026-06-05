@@ -425,30 +425,14 @@ export default function CMS() {
         loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : (
-          <div className="space-y-6 max-h-[calc(100vh-14rem)] overflow-y-auto pr-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-2 gap-6 max-h-[calc(100vh-14rem)] overflow-y-auto pr-2">
             {/* Hero Section */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Hero Section</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleSaveContent('hero')}
-                    disabled={savingSection === 'hero'}
-                    className="btn-primary py-1.5 px-3 text-xs inline-flex items-center"
-                  >
-                    <Save size={14} className="mr-1.5 inline" />
-                    {savingSection === 'hero' ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSection('hero')}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/20 rounded-xl transition-all duration-200"
-                    title="Delete Hero Section Content"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+            <div className="card flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Hero Section</h2>
                 </div>
-              </div>
-              <div className="space-y-4">
+                <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Hero Title</label>
                   <input
@@ -489,9 +473,13 @@ export default function CMS() {
                     <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Banner Image Preview</span>
                     <div className="h-28 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 flex items-center justify-center relative group">
                       <img 
+                        key={content.hero.imageUrl}
                         src={content.hero.imageUrl} 
                         alt="Hero Banner Preview" 
                         className="w-full h-full object-cover"
+                        onLoad={(e) => {
+                          (e.target as HTMLElement).style.display = 'block';
+                        }}
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
@@ -499,32 +487,36 @@ export default function CMS() {
                     </div>
                   </div>
                 )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => handleDeleteSection('hero')}
+                  className="py-2 px-4 text-sm inline-flex items-center text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-sm border-transparent"
+                  title="Delete Hero Section Content"
+                >
+                  <Trash2 size={16} className="mr-2 inline" />
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleSaveContent('hero')}
+                  disabled={savingSection === 'hero'}
+                  className="btn-primary py-2 px-4 text-sm inline-flex items-center"
+                >
+                  <Save size={16} className="mr-2 inline" />
+                  {savingSection === 'hero' ? 'Saving...' : 'Update Hero'}
+                </button>
               </div>
             </div>
 
             {/* About Section */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">About Section</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleSaveContent('about')}
-                    disabled={savingSection === 'about'}
-                    className="btn-primary py-1.5 px-3 text-xs inline-flex items-center"
-                  >
-                    <Save size={14} className="mr-1.5 inline" />
-                    {savingSection === 'about' ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSection('about')}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/20 rounded-xl transition-all duration-200"
-                    title="Delete About Section Content"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+            <div className="card flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">About Section</h2>
                 </div>
-              </div>
-              <div className="space-y-4">
+                <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">About Title</label>
                   <input
@@ -565,9 +557,13 @@ export default function CMS() {
                     <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">About Image Preview</span>
                     <div className="h-28 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 flex items-center justify-center relative group">
                       <img 
+                        key={content.about.imageUrl}
                         src={content.about.imageUrl} 
                         alt="About Image Preview" 
                         className="w-full h-full object-cover"
+                        onLoad={(e) => {
+                          (e.target as HTMLElement).style.display = 'block';
+                        }}
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
@@ -575,32 +571,36 @@ export default function CMS() {
                     </div>
                   </div>
                 )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => handleDeleteSection('about')}
+                  className="py-2 px-4 text-sm inline-flex items-center text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-sm border-transparent"
+                  title="Delete About Section Content"
+                >
+                  <Trash2 size={16} className="mr-2 inline" />
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleSaveContent('about')}
+                  disabled={savingSection === 'about'}
+                  className="btn-primary py-2 px-4 text-sm inline-flex items-center"
+                >
+                  <Save size={16} className="mr-2 inline" />
+                  {savingSection === 'about' ? 'Saving...' : 'Update About'}
+                </button>
               </div>
             </div>
 
             {/* Features Section */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Features Section</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleSaveContent('features')}
-                    disabled={savingSection === 'features'}
-                    className="btn-primary py-1.5 px-3 text-xs inline-flex items-center"
-                  >
-                    <Save size={14} className="mr-1.5 inline" />
-                    {savingSection === 'features' ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSection('features')}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/20 rounded-xl transition-all duration-200"
-                    title="Delete Features Section Content"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+            <div className="card flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Features Section</h2>
                 </div>
-              </div>
-              <div className="space-y-4">
+                <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Features Title</label>
                   <input
@@ -641,9 +641,13 @@ export default function CMS() {
                     <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Features Image Preview</span>
                     <div className="h-28 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 flex items-center justify-center relative group">
                       <img 
+                        key={content.features.imageUrl}
                         src={content.features.imageUrl} 
                         alt="Features Image Preview" 
                         className="w-full h-full object-cover"
+                        onLoad={(e) => {
+                          (e.target as HTMLElement).style.display = 'block';
+                        }}
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
@@ -651,6 +655,26 @@ export default function CMS() {
                     </div>
                   </div>
                 )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => handleDeleteSection('features')}
+                  className="py-2 px-4 text-sm inline-flex items-center text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-sm border-transparent"
+                  title="Delete Features Section Content"
+                >
+                  <Trash2 size={16} className="mr-2 inline" />
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleSaveContent('features')}
+                  disabled={savingSection === 'features'}
+                  className="btn-primary py-2 px-4 text-sm inline-flex items-center"
+                >
+                  <Save size={16} className="mr-2 inline" />
+                  {savingSection === 'features' ? 'Saving...' : 'Update Features'}
+                </button>
               </div>
             </div>
           </div>
@@ -658,100 +682,104 @@ export default function CMS() {
       ) : (
         /* Pricing tab rendering */
         <div className="space-y-6 max-h-[calc(100vh-14rem)] overflow-y-auto pr-2">
-          {/* Add / Edit Form */}
+          {/* Add / Edit Form Modal */}
           {showPlanForm && (
-            <div className="card border border-rose-500/20 shadow-md">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="text-rose-500 animate-pulse-soft" size={18} />
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  {editingPlan ? 'Edit Pricing Plan' : 'Create New Pricing Plan'}
-                </h2>
-              </div>
-              <form onSubmit={handleAddOrUpdatePlan} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                      Plan Name *
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      value={planFormData.name}
-                      onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
-                      className="input-field"
-                      placeholder="e.g. Pro Plan"
-                    />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                <div className="p-6 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Sparkles className="text-rose-500 animate-pulse-soft" size={18} />
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {editingPlan ? 'Update Pricing Plan' : 'Create New Pricing Plan'}
+                    </h2>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                      Monthly Price ($USD) *
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">
-                        $
-                      </span>
-                      <input
-                        required
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={planFormData.price}
-                        onChange={(e) => setPlanFormData({ ...planFormData, price: e.target.value })}
-                        className="input-field pl-8"
-                        placeholder="e.g. 19.99"
+                  <form onSubmit={handleAddOrUpdatePlan} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                          Plan Name *
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          value={planFormData.name}
+                          onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
+                          className="input-field"
+                          placeholder="e.g. Pro Plan"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                          Monthly Price ($USD) *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">
+                            $
+                          </span>
+                          <input
+                            required
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={planFormData.price}
+                            onChange={(e) => setPlanFormData({ ...planFormData, price: e.target.value })}
+                            className="input-field pl-8"
+                            placeholder="e.g. 19.99"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                        Description / Feature summary
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={planFormData.description}
+                        onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
+                        className="input-field"
+                        placeholder="Describe what features, limits, and options this plan grants to the subscriber."
                       />
                     </div>
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                    Description / Feature summary
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={planFormData.description}
-                    onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
-                    className="input-field"
-                    placeholder="Describe what features, limits, and options this plan grants to the subscriber."
-                  />
-                </div>
+                    <div className="flex items-center gap-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setPlanFormData({ ...planFormData, isActive: !planFormData.isActive })}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          planFormData.isActive ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            planFormData.isActive ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Mark plan active immediately (visible to creators)
+                      </span>
+                    </div>
 
-                <div className="flex items-center gap-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setPlanFormData({ ...planFormData, isActive: !planFormData.isActive })}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      planFormData.isActive ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        planFormData.isActive ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Mark plan active immediately (visible to creators)
-                  </span>
+                    <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPlanForm(false);
+                          setEditingPlan(null);
+                        }}
+                        className="btn-outline py-2 px-4"
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn-primary py-2 px-4">
+                        {editingPlan ? 'Update Plan' : 'Create Plan'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button type="submit" className="btn-primary">
-                    {editingPlan ? 'Update Plan' : 'Create Plan'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPlanForm(false);
-                      setEditingPlan(null);
-                    }}
-                    className="btn-outline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
           )}
 
@@ -830,20 +858,22 @@ export default function CMS() {
                       )}
                     </div>
 
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={() => handleEditClick(plan)}
-                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-950/20 rounded-xl transition-all duration-200"
-                        title="Edit Plan"
-                      >
-                        <Edit2 size={16} />
-                      </button>
+                    <div className="flex gap-3 w-full xl:w-auto justify-end">
                       <button
                         onClick={() => handleDeletePlan(plan.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/20 rounded-xl transition-all duration-200"
+                        className="py-2 px-4 text-sm inline-flex items-center text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-sm border-transparent"
                         title="Delete Plan"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} className="mr-2 inline" />
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => handleEditClick(plan)}
+                        className="btn-primary py-2 px-4 text-sm inline-flex items-center"
+                        title="Update Plan"
+                      >
+                        <Edit2 size={16} className="mr-2 inline" />
+                        Update
                       </button>
                     </div>
                   </div>

@@ -359,15 +359,19 @@ export default function Releases() {
     try {
       const token = localStorage.getItem('token');
       const reqConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      // Fetch tracks from backend
-      const res = await axios.get(`/api/releases/${releaseId}`, reqConfig);
+      // Fetch tracks from backend using admin endpoint
+      const res = await axios.get(`/api/admin/releases/${releaseId}`, reqConfig);
       if (res.data && Array.isArray(res.data.tracks)) {
         setPreviewTracks(res.data.tracks);
+      } else if (res.data && res.data.data && Array.isArray(res.data.data.tracks)) {
+        setPreviewTracks(res.data.data.tracks);
       } else {
         // Fallback endpoint
-        const resAlt = await axios.get(`/api/release/${releaseId}`, reqConfig);
+        const resAlt = await axios.get(`/api/admin/release/${releaseId}`, reqConfig);
         if (resAlt.data && Array.isArray(resAlt.data.tracks)) {
           setPreviewTracks(resAlt.data.tracks);
+        } else if (resAlt.data && resAlt.data.data && Array.isArray(resAlt.data.data.tracks)) {
+          setPreviewTracks(resAlt.data.data.tracks);
         }
       }
     } catch (err) {
@@ -533,15 +537,41 @@ export default function Releases() {
     }
   };
 
-  // Edit / Save metadata locally
-  const handleSaveMetadata = (e: React.FormEvent) => {
+  // Edit / Save metadata to API
+  const handleSaveMetadata = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editRelease) return;
 
-    // Update locally
-    setReleases(prev => prev.map(r => r.id === editRelease.id ? editRelease : r));
-    addToast('Release metadata updated successfully (local changes saved)', 'success');
-    setEditRelease(null);
+    try {
+      const token = localStorage.getItem('token');
+      const reqConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+
+      const metadataPayload = {
+        title: editRelease.title,
+        genre: editRelease.genre,
+        language: editRelease.language,
+        release_type: editRelease.release_type,
+        label_name: editRelease.label_name,
+        upc: editRelease.upc,
+        isrc: editRelease.isrc
+      };
+      
+      const res = await axios.put(`/api/admin/releases/${editRelease.id}`, metadataPayload, reqConfig);
+      const finalRelease = res.data.release || editRelease;
+
+      // Update locally
+      setReleases(prev => prev.map(r => r.id === editRelease.id ? { ...r, ...finalRelease } : r));
+      if (previewRelease && previewRelease.id === editRelease.id) {
+        setPreviewRelease(prev => prev ? { ...prev, ...finalRelease } : null);
+      }
+      
+      addToast('Release metadata updated successfully', 'success');
+      setEditRelease(null);
+    } catch (error: any) {
+      console.error(error);
+      const errMsg = error.response?.data?.message || 'Failed to save metadata';
+      addToast(errMsg, 'error');
+    }
   };
 
   const handleUpdateTrack = async (e: React.FormEvent) => {
@@ -560,7 +590,7 @@ export default function Releases() {
 
       const response = await axios.put(`/api/admin/tracks/${editTrack.id}`, formData, reqConfig);
       
-      const updatedTrack = response.data.track;
+      const updatedTrack = response.data.data || response.data.track;
       addToast('Track updated successfully', 'success');
       setPreviewTracks(prev => prev.map(t => t.id === editTrack.id ? { ...t, ...updatedTrack, title: updatedTrack.trackTitle } : t));
       setEditTrack(null);
@@ -659,7 +689,7 @@ export default function Releases() {
           id="refresh-releases-btn"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          Sync Datastore
+          Refresh
         </button>
       </div>
 
@@ -932,7 +962,7 @@ export default function Releases() {
                           <Eye size={16} />
                         </button>
                         <button
-                          onClick={() => setEditRelease(release)}
+                          onClick={() => { setEditRelease(release); handleLoadTracks(release.id); }}
                           className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit Release"
                           id={`edit-release-btn-${release.id}`}
@@ -1119,19 +1149,6 @@ export default function Releases() {
                             <div>
                               <div className="font-semibold text-sm text-gray-800 flex items-center gap-2">
                                 {track.title || track.name || track.trackTitle || 'Unnamed Track'}
-                                <button
-                                  onClick={() => setEditTrack({
-                                    id: track.id,
-                                    title: track.title || track.name || track.trackTitle || '',
-                                    isrc: track.isrc || '',
-                                    lyrics: track.lyrics || '',
-                                    featuredArtists: track.featuredArtists || ''
-                                  })}
-                                  className="text-gray-400 hover:text-rose-600 transition-colors"
-                                  title="Edit Track Details"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
                               </div>
                               <span className="text-gray-400 text-xs font-mono">
                                 WAV | {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
@@ -1483,7 +1500,87 @@ export default function Releases() {
                     className="input-field font-mono"
                   />
                 </div>
+
+                <div className="col-span-2 mt-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Replace Artwork (JPG/PNG)</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg, image/png"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !editRelease) return;
+                      try {
+                        const token = localStorage.getItem('token');
+                        const reqConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+                        const formData = new FormData();
+                        formData.append('artwork', file);
+                        const artworkRes = await axios.put(`/api/admin/releases/${editRelease.id}/artwork`, formData, reqConfig);
+                        if (artworkRes.data && artworkRes.data.data) {
+                          const updated = artworkRes.data.data;
+                          setEditRelease(prev => prev ? { ...prev, artwork: updated.artwork } : null);
+                          setReleases(prev => prev.map(r => r.id === editRelease.id ? { ...r, artwork: updated.artwork } : r));
+                          if (previewRelease && previewRelease.id === editRelease.id) {
+                            setPreviewRelease(prev => prev ? { ...prev, artwork: updated.artwork } : null);
+                          }
+                          addToast('Artwork updated automatically', 'success');
+                        }
+                      } catch (error: any) {
+                        console.error(error);
+                        const errMsg = error.response?.data?.message || 'Failed to upload artwork';
+                        addToast(errMsg, 'error');
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">Select an image to automatically upload and save.</p>
+                </div>
               </div>
+
+                {/* Track List inside Edit Modal */}
+                <div className="col-span-2 space-y-2 mt-4 border-t border-gray-150 pt-4">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tracks</h4>
+                  {loadingTracks ? (
+                    <div className="p-4 border border-dashed border-gray-300 text-center rounded-xl text-sm text-gray-500 animate-pulse">
+                      Loading track list...
+                    </div>
+                  ) : previewTracks.length === 0 ? (
+                    <div className="p-4 border border-dashed border-gray-300 text-center rounded-xl text-sm text-gray-500">
+                      No tracks uploaded for this release.
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-150 bg-white">
+                      {previewTracks.map((track) => (
+                        <div key={track.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <div className="font-semibold text-sm text-gray-800 flex items-center gap-2">
+                                {track.title || track.name || track.trackTitle || 'Unnamed Track'}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditTrack({
+                                    id: track.id,
+                                    releaseId: editRelease.id,
+                                    title: track.title || track.name || track.trackTitle || '',
+                                    isrc: track.isrc || '',
+                                    lyrics: track.lyrics || '',
+                                    featuredArtists: track.featuredArtists || ''
+                                  })}
+                                  className="text-gray-400 hover:text-rose-600 transition-colors"
+                                  title="Edit Track Details"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                              </div>
+                              <span className="text-gray-400 text-xs font-mono">
+                                WAV | {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
               <div className="flex justify-end gap-2.5 mt-6 border-t border-gray-150 pt-4">
                 <button

@@ -130,13 +130,8 @@ export default function Layout() {
                 )}
               </div>
               {!collapsedMode && (
-                <span className="flex-1 flex justify-between items-center">
+                <span className="flex-1">
                   {item.label}
-                  {item.label === 'Notifications' && unreadCount > 0 && (
-                    <span className="flex h-5 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 text-xs font-bold text-red-600 dark:text-red-400">
-                      {unreadCount}
-                    </span>
-                  )}
                 </span>
               )}
             </Link>

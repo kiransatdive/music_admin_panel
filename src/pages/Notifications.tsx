@@ -16,6 +16,7 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +25,7 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchNotifications();
+    setSelectedIds([]);
   }, [currentPage]);
 
   const fetchNotifications = async () => {
@@ -71,11 +73,26 @@ export default function Notifications() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this notification?')) return;
     try {
       await axios.delete(`/api/admin/notifications/${id}`);
       fetchNotifications();
     } catch (error) {
       alert('Failed to delete notification');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} notifications?`)) return;
+    try {
+      await axios.delete(`/api/admin/notifications/bulk-delete`, {
+        data: { ids: selectedIds }
+      });
+      setSelectedIds([]);
+      fetchNotifications();
+    } catch (error) {
+      alert('Failed to bulk delete notifications');
     }
   };
 
@@ -106,6 +123,32 @@ export default function Notifications() {
         </button>
       </div>
 
+      {/* Bulk Action Drawer */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 text-white p-4 rounded-xl flex items-center justify-between mb-6 shadow-xl shrink-0 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="bg-rose-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-xs">
+              {selectedIds.length}
+            </span>
+            <span className="font-semibold text-sm">notifications selected</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-500 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Trash2 size={16} /> Delete Selected
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main White Box Container */}
       <div className="card p-0 flex-1 flex flex-col min-h-0 bg-white shadow-md border border-gray-200 overflow-hidden">
         {/* Notifications List */}
@@ -131,9 +174,15 @@ export default function Notifications() {
                 <input 
                   type="checkbox" 
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  checked={notification.isRead}
-                  onChange={() => !notification.isRead && handleMarkAsRead(notification.id)}
-                  title={notification.isRead ? "Read" : "Mark as read"}
+                  checked={selectedIds.includes(notification.id)}
+                  onChange={() => {
+                    setSelectedIds(prev => 
+                      prev.includes(notification.id) 
+                        ? prev.filter(id => id !== notification.id) 
+                        : [...prev, notification.id]
+                    );
+                  }}
+                  title="Select Notification"
                 />
               </div>
               
@@ -165,13 +214,15 @@ export default function Notifications() {
                 </p>
               </div>
               
-              <button
-                onClick={() => handleDelete(notification.id)}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors mt-0.5"
-                title="Delete Notification"
-              >
-                <Trash2 size={18} />
-              </button>
+              <div className="flex items-center gap-1 mt-0.5">
+                <button
+                  onClick={() => handleDelete(notification.id)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete Notification"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
           ))
         )}
