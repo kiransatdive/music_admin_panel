@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
-  Check,
   ChevronDown,
   Edit3
 } from 'lucide-react';
@@ -27,6 +26,11 @@ interface WhitelistItem {
   adminId?: number | null;
   createdAt: string;
   updatedAt: string;
+  artist?: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 interface Toast {
@@ -585,6 +589,7 @@ export default function Whitelist() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 text-gray-500">
+                    <th className="text-left py-3 px-4 font-semibold">Artist</th>
                     <th className="text-left py-3 px-4 font-semibold">Platform</th>
                     <th className="text-left py-3 px-4 font-semibold">Domain</th>
                     <th className="text-left py-3 px-4 font-semibold">Category</th>
@@ -597,6 +602,7 @@ export default function Whitelist() {
                 <tbody>
                   {paginatedItems.map((item) => (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-medium text-gray-900">{item.artist?.name || '-'}</td>
                       <td className="py-3.5 px-4 font-medium text-gray-900">{item.platformName}</td>
                       <td className="py-3.5 px-4 text-gray-600 font-mono text-xs">{item.domain}</td>
                       <td className="py-3.5 px-4">
@@ -624,24 +630,6 @@ export default function Whitelist() {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {item.status === 'PENDING' && (
-                            <>
-                              <button
-                                onClick={() => handleApproveRequest(item)}
-                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                title="Approve Request"
-                              >
-                                <Check size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleRejectRequest(item)}
-                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                title="Reject Request"
-                              >
-                                <X size={16} />
-                              </button>
-                            </>
-                          )}
                           <button
                             onClick={() => openEditModal(item)}
                             className="p-1.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

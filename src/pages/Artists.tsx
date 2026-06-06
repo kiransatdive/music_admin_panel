@@ -110,6 +110,20 @@ export default function Artists() {
 
 
 
+  const handleViewArtist = async (id: number) => {
+    try {
+      const response = await axios.get(`/api/admin/artists/${id}`);
+      if (response.data && response.data.success) {
+        setSelectedArtist(response.data.data);
+      } else {
+        addToast('Failed to load artist details', 'error');
+      }
+    } catch (err: any) {
+      console.error('Failed to view artist:', err);
+      addToast('Failed to fetch artist details', 'error');
+    }
+  };
+
   const handleDeleteArtist = async (artist: Artist) => {
     if (!confirm(`Are you sure you want to suspend and delete the account for "${artist.name}"? This action deletes their profile, releases, and catalog permanently.`)) return;
     try {
@@ -345,7 +359,7 @@ export default function Artists() {
                     <td className="py-4 px-5 text-center relative">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
-                          onClick={() => setSelectedArtist(artist)}
+                          onClick={() => handleViewArtist(artist.id)}
                           className="p-1.5 text-gray-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors inline-flex items-center justify-center"
                           title="View Details"
                           id={`view-artist-btn-${artist.id}`}
