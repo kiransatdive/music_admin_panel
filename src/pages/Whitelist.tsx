@@ -212,6 +212,7 @@ export default function Whitelist() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<Toast | null>(null);
   const [updatingIds, setUpdatingIds] = useState<number[]>([]);
+  const [artists, setArtists] = useState<{ id: number; name: string; email: string }[]>([]);
 
   // Search & Filter states
   const [search, setSearch] = useState('');
@@ -230,7 +231,8 @@ export default function Whitelist() {
   const [addForm, setAddForm] = useState({
     platformName: '',
     domain: '',
-    category: 'WEBSITE_DOMAIN'
+    category: 'WEBSITE_DOMAIN',
+    artistId: ''
   });
   const [isAdding, setIsAdding] = useState(false);
 
@@ -246,7 +248,19 @@ export default function Whitelist() {
 
   useEffect(() => {
     fetchWhitelist();
+    fetchArtists();
   }, []);
+
+  const fetchArtists = async () => {
+    try {
+      const response = await axios.get('/api/admin/artists', { params: { limit: 1000 } });
+      if (response.data && response.data.success) {
+        setArtists(response.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load artists:', err);
+    }
+  };
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -392,18 +406,22 @@ export default function Whitelist() {
     if (isAdding) return;
     setIsAdding(true);
     try {
-      const response = await axios.post('/api/admin/whitelist', addForm);
+      const payload = {
+        ...addForm,
+        artistId: addForm.artistId ? parseInt(addForm.artistId as string, 10) : undefined
+      };
+      const response = await axios.post('/api/admin/whitelist', payload);
       const responseData = response.data;
       if (responseData && responseData.success) {
         showToast(responseData.message || 'Whitelist entry created successfully', 'success');
         setItems(prev => [responseData.data, ...prev]);
         setShowAddModal(false);
-        setAddForm({ platformName: '', domain: '', category: 'WEBSITE_DOMAIN' });
+        setAddForm({ platformName: '', domain: '', category: 'WEBSITE_DOMAIN', artistId: '' });
       } else {
         showToast('Whitelist entry created successfully', 'success');
         fetchWhitelist();
         setShowAddModal(false);
-        setAddForm({ platformName: '', domain: '', category: 'WEBSITE_DOMAIN' });
+        setAddForm({ platformName: '', domain: '', category: 'WEBSITE_DOMAIN', artistId: '' });
       }
     } catch (error: any) {
       console.error(error);
@@ -602,7 +620,14 @@ export default function Whitelist() {
                 <tbody>
                   {paginatedItems.map((item) => (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                      <td className="py-3.5 px-4 font-medium text-gray-900">{item.artist?.name || '-'}</td>
+                      <td className="py-3.5 px-4 font-medium text-gray-900">
+                        {item.artist ? (
+                          <div className="flex flex-col">
+                            <span>{item.artist.name}</span>
+                            <span className="text-xs text-gray-500">{item.artist.email}</span>
+                          </div>
+                        ) : '-'}
+                      </td>
                       <td className="py-3.5 px-4 font-medium text-gray-900">{item.platformName}</td>
                       <td className="py-3.5 px-4 text-gray-600 font-mono text-xs">{item.domain}</td>
                       <td className="py-3.5 px-4">
@@ -774,6 +799,21 @@ export default function Whitelist() {
                   <option value="SOCIAL_MEDIA">Social Media</option>
                   <option value="STREAMING_PLATFORM">Streaming Platform</option>
                   <option value="WEBSITE_DOMAIN">Website Domain</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Assign to Artist (Optional)</label>
+                <select
+                  value={addForm.artistId}
+                  onChange={(e) => setAddForm(prev => ({ ...prev, artistId: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="">-- No specific artist --</option>
+                  {artists.map(artist => (
+                    <option key={artist.id} value={artist.id}>
+                      {artist.name} ({artist.email})
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex justify-end gap-3 mt-6 pt-2">

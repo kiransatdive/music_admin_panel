@@ -1155,9 +1155,9 @@ export default function Releases() {
                               </span>
                             </div>
                           </div>
-                          {track.file_path && (
+                          {(track.audioFile || track.file_path) && (
                             <a
-                              href={getAudioUrl(track.file_path)}
+                              href={getAudioUrl(track.audioFile || track.file_path)}
                               download
                               className="p-1.5 text-gray-400 hover:text-slate-800 hover:bg-gray-100 rounded-lg transition-colors"
                               title="Download WAV file"
@@ -1187,7 +1187,7 @@ export default function Releases() {
                     </div>
                     <audio
                       ref={audioRef}
-                      src={getAudioUrl(currentPlayingTrack.file_path)}
+                      src={getAudioUrl(currentPlayingTrack.audioFile || currentPlayingTrack.file_path)}
                       controls
                       className="w-full h-8 mt-1 rounded bg-slate-900 text-white filter invert focus:outline-none"
                       onEnded={() => setIsPlaying(false)}

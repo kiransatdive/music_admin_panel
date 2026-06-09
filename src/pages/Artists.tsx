@@ -26,6 +26,15 @@ interface Artist {
   upiId: string | null;
   isVerified: boolean;
   createdAt: string;
+  whitelistedDomains?: {
+    id: number;
+    category: string;
+    platformName: string;
+    domain: string;
+    status: string;
+    isActive: boolean;
+    rejectionReason: string | null;
+  }[];
 }
 
 interface Toast {
@@ -524,6 +533,29 @@ export default function Artists() {
                     <span className="text-gray-400 text-xs font-bold uppercase tracking-wider block">Social Connections</span>
                     {renderSocialLinks(selectedArtist.socialLinks)}
                   </div>
+                  {selectedArtist.whitelistedDomains && selectedArtist.whitelistedDomains.length > 0 && (
+                    <div className="pt-2">
+                      <span className="text-gray-400 text-xs font-bold uppercase tracking-wider block mb-2">Whitelisted Domains</span>
+                      <div className="grid grid-cols-1 gap-2">
+                        {selectedArtist.whitelistedDomains.map(domain => (
+                          <div key={domain.id} className="flex flex-col p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs shadow-sm">
+                            <div className="flex justify-between items-start mb-1 gap-2">
+                              <span className="font-bold text-gray-800 capitalize truncate">{domain.platformName || domain.domain}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${domain.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : domain.status === 'REJECTED' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                                {domain.status}
+                              </span>
+                            </div>
+                            <span className="text-gray-500 font-mono text-[10px] truncate">{domain.domain}</span>
+                            {domain.rejectionReason && (
+                              <span className="text-red-600 text-[10px] mt-1.5 block italic bg-red-50 p-1.5 rounded-md border border-red-100">
+                                <strong>Reason:</strong> {domain.rejectionReason}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bank Account Details */}
