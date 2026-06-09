@@ -215,6 +215,15 @@ export default function Notifications() {
               </div>
               
               <div className="flex items-center gap-1 mt-0.5">
+                {!notification.isRead && (
+                  <button
+                    onClick={() => handleMarkAsRead(notification.id)}
+                    className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Mark as Read"
+                  >
+                    <Check size={18} />
+                  </button>
+                )}
                 <button
                   onClick={() => handleDelete(notification.id)}
                   className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
